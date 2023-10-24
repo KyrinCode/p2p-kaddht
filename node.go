@@ -1,3 +1,5 @@
+// https://medium.com/rahasak/libp2p-pubsub-peer-discovery-with-kademlia-dht-c8b131550ac7
+
 package main
 
 import (
@@ -10,8 +12,13 @@ import (
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	b58 "github.com/mr-tron/base58/base58" // test
+
+	// test
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -32,8 +39,8 @@ func main() {
 	}
 
 	// view host details and addresses
-	fmt.Printf("host ID %s\n", host.ID().Pretty())
-	fmt.Printf("following are the assigned addresses\n")
+	fmt.Printf("[Host ID] %s\n", host.ID().Pretty())
+	fmt.Printf("Assigned listening addresses:\n")
 	for _, addr := range host.Addrs() {
 		fmt.Printf("%s\n", addr.String())
 	}
@@ -45,18 +52,25 @@ func main() {
 		panic(err)
 	}
 
+	// option 1
+	// setup DHT with empty discovery peers
+	// so this will be a discovery peer for others
+	// this peer should run on cloud(with public ip address)
+	// discoveryPeers := []multiaddr.Multiaddr{}
+
+	// option 2
 	// ipfs address of discovery peers
 	// i have added one peer here, you could add multiple disovery peers
-	multiAddr, err := multiaddr.NewMultiaddr("/ip4/20.228.145.221/tcp/7654/p2p/QmPMFJUzfB1LrxksmpS75QNwtmN8TCEcMvSezL3V9hp8a4")
+	multiAddr, err := multiaddr.NewMultiaddr("/ip4/10.249.1.47/tcp/54547/p2p/12D3KooWHvetCa5o8Xpz7YhnHqpGLnvmX3QtmhPrREiuFziUGPCm")
 	if err != nil {
 		panic(err)
 	}
-	println(multiAddr)
-
+	// println(multiAddr.String())
 	// setup DHT with discovery server
 	// this peer could run behind the nat(with private ip address)
 	discoveryPeers := []multiaddr.Multiaddr{multiAddr}
-	dht, err := NewDHT(ctx, host, discoveryPeers)
+
+	dht, err := initDHT(ctx, host, discoveryPeers)
 	if err != nil {
 		panic(err)
 	}
@@ -65,9 +79,9 @@ func main() {
 	go Discover(ctx, host, dht, "room")
 
 	// setup local mDNS discovery
-	if err := setupDiscovery(host); err != nil {
-		panic(err)
-	}
+	// if err := setupDiscovery(host); err != nil {
+	// 	panic(err)
+	// }
 
 	// join the pubsub topic called room
 	room := "room"
@@ -83,7 +97,19 @@ func main() {
 	}
 	stop := make(chan bool)
 	go subscribe(subscriber, ctx, host.ID(), stop)
-	// subscribe(subscriber, ctx, host.ID())
+
+	// support unsubscribe
+	// stop <- true
+	// subscriber.Cancel()
+
+	// test if bootstrap node help nodes to connect with each other
+	time.Sleep(5 * time.Second)
+	peerID, _ := b58.Decode("12D3KooWQAn3owZCKqU6ndPBgfuA3gyKntMe3rMoE7GqGGpBWpkL") // second node peer ID
+	pID := peer.ID(string(peerID))
+	println("?")
+	if host.Network().Connectedness(pID) == network.Connected {
+		fmt.Printf("Yes! Connected to peer %s\n", pID.String())
+	}
 
 	// create publisher
 	publish(ctx, topic)
@@ -94,7 +120,7 @@ func publish(ctx context.Context, topic *pubsub.Topic) {
 	for {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			fmt.Printf("enter message to publish: \n")
+			fmt.Printf("Enter message to publish: \n")
 
 			msg := scanner.Text()
 			if len(msg) != 0 {
@@ -123,7 +149,7 @@ func subscribe(subscriber *pubsub.Subscription, ctx context.Context, hostID peer
 				continue
 			}
 
-			fmt.Printf("got message: %s, from: %s\n", string(msg.Data), msg.ReceivedFrom.Pretty())
+			fmt.Printf("Got message: %s, from: %s\n", string(msg.Data), msg.ReceivedFrom.String())
 		}
 	}
 }
@@ -137,10 +163,10 @@ type discoveryNotifee struct {
 // the PubSub system will automatically start interacting with them if they also
 // support PubSub.
 func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
-	fmt.Printf("discovered new peer %s\n", pi.ID.Pretty())
+	fmt.Printf("New peer discovered: %s\n", pi.ID.String())
 	err := n.h.Connect(context.Background(), pi)
 	if err != nil {
-		fmt.Printf("error connecting to peer %s: %s\n", pi.ID.Pretty(), err)
+		fmt.Printf("Error connecting to peer %s: %s\n", pi.ID.String(), err)
 	}
 }
 

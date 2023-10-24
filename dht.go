@@ -11,7 +11,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-func NewDHT(ctx context.Context, host host.Host, bootstrapPeers []multiaddr.Multiaddr) (*dht.IpfsDHT, error) {
+func initDHT(ctx context.Context, host host.Host, bootstrapPeers []multiaddr.Multiaddr) (*dht.IpfsDHT, error) {
 	var options []dht.Option
 
 	// if no bootstrap peers give this peer act as a bootstraping node

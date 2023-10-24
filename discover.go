@@ -36,11 +36,23 @@ func Discover(ctx context.Context, h host.Host, dht *dht.IpfsDHT, rendezvous str
 				if p.ID == h.ID() {
 					continue
 				}
+				// err := h.Connect(ctx, p)
+				// if err != nil {
+				// 	fmt.Printf("Failed connecting to %s, error: %s\n", p.ID, err)
+				// } else {
+				// 	fmt.Printf("Connected to peer: %s\n", p.ID)
+				// }
 				if h.Network().Connectedness(p.ID) != network.Connected {
 					_, err = h.Network().DialPeer(ctx, p.ID)
-					fmt.Printf("Connected to peer %s\n", p.ID.Pretty())
 					if err != nil {
+						fmt.Printf("Failed connecting to %s, error: %s\n", p.ID.String(), err)
+						// err = h.Network().ClosePeer(p.ID)
+						// if err != nil {
+						// 	fmt.Printf("Failed disconnecting to %s, error: %s\n", p.ID.String(), err)
+						// }
 						continue
+					} else {
+						fmt.Printf("Connected to peer: %s\n", p.ID.String())
 					}
 				}
 			}
