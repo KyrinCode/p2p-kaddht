@@ -52,7 +52,7 @@ func Discover(ctx context.Context, h host.Host, dht *dht.IpfsDHT, rendezvous str
 						// }
 						continue
 					} else {
-						fmt.Printf("Connected to peer: %s\n", p.ID.String())
+						fmt.Printf("Connected to peer: %s with dht\n", p.ID.String())
 					}
 				}
 			}

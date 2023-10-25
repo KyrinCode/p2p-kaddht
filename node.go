@@ -12,13 +12,12 @@ import (
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
-	"github.com/libp2p/go-libp2p/core/network"
 
+	"github.com/libp2p/go-libp2p/core/network" // test
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
-	b58 "github.com/mr-tron/base58/base58" // test
 
-	// test
+	b58 "github.com/mr-tron/base58/base58" // test
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -61,7 +60,7 @@ func main() {
 	// option 2
 	// ipfs address of discovery peers
 	// i have added one peer here, you could add multiple disovery peers
-	multiAddr, err := multiaddr.NewMultiaddr("/ip4/10.249.1.47/tcp/54547/p2p/12D3KooWHvetCa5o8Xpz7YhnHqpGLnvmX3QtmhPrREiuFziUGPCm")
+	multiAddr, err := multiaddr.NewMultiaddr("/ip4/10.249.1.47/tcp/65229/p2p/12D3KooWEJVyJV4cPukbJmZj3PxkydpmxHuBcQQwUY4XwCThzCd2")
 	if err != nil {
 		panic(err)
 	}
@@ -78,10 +77,10 @@ func main() {
 	// setup peer discovery
 	go Discover(ctx, host, dht, "room")
 
-	// setup local mDNS discovery
-	// if err := setupDiscovery(host); err != nil {
-	// 	panic(err)
-	// }
+	// setup local mDNS discovery (optional)
+	if err := setupDiscovery(host); err != nil {
+		panic(err)
+	}
 
 	// join the pubsub topic called room
 	room := "room"
@@ -102,9 +101,9 @@ func main() {
 	// stop <- true
 	// subscriber.Cancel()
 
-	// test if bootstrap node help nodes to connect with each other
+	// test if bootstrap node help nodes to connect with each other by the third node
 	time.Sleep(5 * time.Second)
-	peerID, _ := b58.Decode("12D3KooWQAn3owZCKqU6ndPBgfuA3gyKntMe3rMoE7GqGGpBWpkL") // second node peer ID
+	peerID, _ := b58.Decode("12D3KooWEJVyJV4cPukbJmZj3PxkydpmxHuBcQQwUY4XwCThzCd2") // second node peer ID
 	pID := peer.ID(string(peerID))
 	println("?")
 	if host.Network().Connectedness(pID) == network.Connected {
@@ -163,7 +162,7 @@ type discoveryNotifee struct {
 // the PubSub system will automatically start interacting with them if they also
 // support PubSub.
 func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
-	fmt.Printf("New peer discovered: %s\n", pi.ID.String())
+	fmt.Printf("New peer discovered: %s with mdns\n", pi.ID.String())
 	err := n.h.Connect(context.Background(), pi)
 	if err != nil {
 		fmt.Printf("Error connecting to peer %s: %s\n", pi.ID.String(), err)
